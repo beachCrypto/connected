@@ -42,9 +42,9 @@ pages_build_output_dir = ".vercel/output/static"
 # Bind a KV Namespace. Use KV as persistent storage for small key-value pairs.
 # Docs: https://developers.cloudflare.com/pages/functions/bindings/#kv-namespaces
 # KV Example:
-# [[kv_namespaces]]
-# binding = "MY_KV_NAMESPACE"
-# id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+#[[kv_namespaces]]
+#binding = "MY_KV_NAMESPACE"
+#id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 # Bind a Queue producer. Use this binding to schedule an arbitrary task that may be processed later by a Queue consumer.
 # Docs: https://developers.cloudflare.com/pages/functions/bindings/#queue-producers
@@ -85,3 +85,11 @@ pages_build_output_dir = ".vercel/output/static"
 # [[env.production.kv_namespaces]]
 # binding = "MY_KV_NAMESPACE"
 # id = "<PRODUCTION_NAMESPACE_ID>"
+
+[[kv_namespaces]]
+binding = "CASTS_KV"
+preview_id = "8abd14e0beed4cd9acb42c044e09f489"
+id = "e3ec164057674392a082f185696732ba"
+
+# [vars]
+# NEYNAR_API_KEY = ""
