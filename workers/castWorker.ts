@@ -47,16 +47,35 @@ async function checkRateLimit(): Promise<boolean> {
 }
 
 async function handleRequest(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+
   if (request.method === 'GET') {
-    // Add a KV read operation for GET requests
-    const keys = await CASTS_KV.list();
-    return new Response(JSON.stringify({
-      message: 'Worker is running!',
-      storedKeys: keys.keys.map(k => k.name)
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    const path = url.pathname.slice(1); // Remove leading slash
+
+    if (path === '') {
+      // List all keys
+      const keys = await CASTS_KV.list();
+      return new Response(JSON.stringify({
+        message: 'Worker is running!',
+        storedKeys: keys.keys.map(k => k.name)
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } else {
+      // Get specific key
+      console.log(`Attempting to retrieve key: ${path}`);
+      const value = await CASTS_KV.get(path);
+      if (value === null) {
+        console.log(`Key not found: ${path}`);
+        return new Response('Key not found', { status: 404 });
+      }
+      console.log(`Retrieved value for key: ${path}`);
+      return new Response(value, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
   }
 
   try {
