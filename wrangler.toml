@@ -91,5 +91,5 @@ binding = "CASTS_KV"
 preview_id = "8abd14e0beed4cd9acb42c044e09f489"
 id = "e3ec164057674392a082f185696732ba"
 
-# [vars]
-# NEYNAR_API_KEY = ""
+[vars]
+NEYNAR_API_KEY = ""
