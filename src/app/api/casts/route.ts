@@ -30,15 +30,11 @@ interface Cast {
 }
 
 export async function GET() {
-  try {
-    const isProduction = process.env.VERCEL_ENV === 'production';
-    const workerUrl = isProduction
-      ? process.env.PRODUCTION_WORKER_URL
-      : process.env.PREVIEW_WORKER_URL;
+  console.log('GET request received');
 
-    if (!workerUrl) {
-      throw new Error('Worker URL environment variable is not set');
-    }
+  try {
+    const workerUrl = 'https://connected-fc.beachcrypto1.workers.dev';
+    console.log('Worker URL:', workerUrl);
 
     // Fetch casts from KV storage
     const kvResponse = await fetch(workerUrl);
@@ -54,12 +50,14 @@ export async function GET() {
 
         // Fetch each cast by its key
         for (const key of storedKeys) {
-          const castResponse = await fetch(`${workerUrl}/${key}`);
-          if (castResponse.ok) {
-            const cast: Cast = await castResponse.json();
-            casts.push(cast);
-          } else {
-            console.error(`Failed to fetch cast with key: ${key}`);
+          if (key !== 'api_calls') {  // Skip the 'api_calls' key
+            const castResponse = await fetch(`${workerUrl}/${key}`);
+            if (castResponse.ok) {
+              const cast: Cast = await castResponse.json();
+              casts.push(cast);
+            } else {
+              console.error(`Failed to fetch cast with key: ${key}`);
+            }
           }
         }
 
@@ -70,7 +68,7 @@ export async function GET() {
     }
 
   } catch (error) {
-    console.error('Error fetching casts from KV:', error);
+    console.error('Detailed error:', error);
     return NextResponse.json({ error: 'Internal server error', details: (error as Error).message }, { status: 500 });
   }
 }

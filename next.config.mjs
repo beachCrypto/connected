@@ -8,6 +8,13 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  reactStrictMode: true,
+  swcMinify: true,
+  output: 'standalone',
+  env: {
+    WORKER_URL: process.env.WORKER_URL,
+  },
+}
 
 export default nextConfig;
