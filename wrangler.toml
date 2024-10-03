@@ -68,28 +68,26 @@ pages_build_output_dir = ".vercel/output/static"
 # When using environment-specific overrides for bindings, ALL bindings must be specified on a per-environment basis.
 # Docs: https://developers.cloudflare.com/pages/functions/wrangler-configuration#environment-specific-overrides
 
+######## ######## ########
+
+# Common vars (if any)
+vars = { ENVIRONMENT = "development" }
+
 ######## PREVIEW environment config ########
 
-# [env.preview.vars]
-# API_KEY = "xyz789"
-
-# [[env.preview.kv_namespaces]]
-# binding = "MY_KV_NAMESPACE"
-# id = "<PREVIEW_NAMESPACE_ID>"
+# Preview environment
+[env.preview]
+vars = { ENVIRONMENT = "preview", NEYNAR_API_KEY = "" }
+[[env.preview.kv_namespaces]]
+binding = "CASTS_KV"
+id = "8abd14e0beed4cd9acb42c044e09f489"
 
 ######## PRODUCTION environment config ########
 
-# [env.production.vars]
-# API_KEY = "abc123"
-
-# [[env.production.kv_namespaces]]
-# binding = "MY_KV_NAMESPACE"
-# id = "<PRODUCTION_NAMESPACE_ID>"
-
-[[kv_namespaces]]
+# Production environment
+[env.production]
+vars = { ENVIRONMENT = "production" }
+[[env.production.kv_namespaces]]
 binding = "CASTS_KV"
-preview_id = "8abd14e0beed4cd9acb42c044e09f489"
 id = "e3ec164057674392a082f185696732ba"
 
-[vars]
-NEYNAR_API_KEY = ""

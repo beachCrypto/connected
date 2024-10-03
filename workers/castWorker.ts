@@ -99,6 +99,16 @@ async function handleRequest(request: Request): Promise<Response> {
     );
 
     if (!apiResponse.ok) {
+      if (apiResponse.status === 401) {
+        console.error('API request failed due to unauthorized access. Please check your API key.');
+        return new Response(JSON.stringify({
+          error: 'Unauthorized access to the Neynar API',
+          details: 'Please check your API key and ensure it is correctly set in your environment variables.'
+        }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
       throw new Error(`API request failed with status ${apiResponse.status}`);
     }
 
@@ -169,15 +179,20 @@ async function handleRequest(request: Request): Promise<Response> {
     console.error('Error in handleRequest:', error);
 
     let errorMessage = 'An unknown error occurred';
+    let statusCode = 500;
+
     if (error instanceof Error) {
       errorMessage = error.message;
+      if (error.message.includes('API request failed')) {
+        statusCode = 502; // Bad Gateway
+      }
     }
 
     return new Response(JSON.stringify({
       error: 'An error occurred while processing casts',
       details: errorMessage
     }), {
-      status: 500,
+      status: statusCode,
       headers: { 'Content-Type': 'application/json' }
     });
   }
