@@ -25,47 +25,52 @@ interface Cast {
   replies: {
     count: number;
   };
-}
-
-interface NeynarResponse {
-  casts: Cast[];
+  votes: number;
+  lastUpdated: string;
 }
 
 export async function GET() {
   try {
-    const apiKey = process.env.NEYNAR_API_KEY;
-    const apiUrl = 'https://api.neynar.com/v2/farcaster/feed?feed_type=filter&filter_type=parent_url&parent_url=https%3A%2F%2Fwarpcast.com%2F~%2Fchannel%2Fbase&with_recasts=false&limit=25';
+    const isProduction = process.env.VERCEL_ENV === 'production';
+    const workerUrl = isProduction
+      ? process.env.PRODUCTION_WORKER_URL
+      : process.env.PREVIEW_WORKER_URL;
 
-    const response = await fetch(apiUrl, {
-      headers: {
-        'accept': 'application/json',
-        'api_key': apiKey || ''
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
+    if (!workerUrl) {
+      throw new Error('Worker URL environment variable is not set');
     }
 
-    const data: NeynarResponse = await response.json();
+    // Fetch casts from KV storage
+    const kvResponse = await fetch(workerUrl);
 
-    if (!data.casts || !Array.isArray(data.casts)) {
-      console.error('Unexpected data structure:', data);
-      return NextResponse.json({ error: 'Invalid data structure' }, { status: 500 });
+    if (!kvResponse.ok) {
+      throw new Error(`KV responded with status: ${kvResponse.status}`);
     }
 
-    // Process casts
-    for (const cast of data.casts) {
-      console.log('Processing cast:', cast.hash);
-      // TODO: Implement your storage logic here
-      // For example, if you're using a database:
-      // await db.casts.upsert({ where: { hash: cast.hash }, create: cast, update: cast });
-    }
+    const data: unknown = await kvResponse.json();
+    if (typeof data === 'object' && data && 'storedKeys' in data && Array.isArray(data.storedKeys)) {
+        const storedKeys = data.storedKeys;
+        const casts: Cast[] = [];
 
-    return NextResponse.json({ message: 'Casts processed successfully' });
+        // Fetch each cast by its key
+        for (const key of storedKeys) {
+          const castResponse = await fetch(`${workerUrl}/${key}`);
+          if (castResponse.ok) {
+            const cast: Cast = await castResponse.json();
+            casts.push(cast);
+          } else {
+            console.error(`Failed to fetch cast with key: ${key}`);
+          }
+        }
+
+        return NextResponse.json({ casts });
+
+    } else {
+        throw new Error('Unexpected response structure');
+    }
 
   } catch (error) {
-    console.error('Error processing casts:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error fetching casts from KV:', error);
+    return NextResponse.json({ error: 'Internal server error', details: (error as Error).message }, { status: 500 });
   }
 }
