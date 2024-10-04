@@ -47,35 +47,16 @@ async function checkRateLimit(): Promise<boolean> {
 }
 
 async function handleRequest(request: Request): Promise<Response> {
-  const url = new URL(request.url);
-
   if (request.method === 'GET') {
-    const path = url.pathname.slice(1); // Remove leading slash
-
-    if (path === '') {
-      // List all keys
-      const keys = await CASTS_KV.list();
-      return new Response(JSON.stringify({
-        message: 'Worker is running!',
-        storedKeys: keys.keys.map(k => k.name)
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    } else {
-      // Get specific key
-      console.log(`Attempting to retrieve key: ${path}`);
-      const value = await CASTS_KV.get(path);
-      if (value === null) {
-        console.log(`Key not found: ${path}`);
-        return new Response('Key not found', { status: 404 });
-      }
-      console.log(`Retrieved value for key: ${path}`);
-      return new Response(value, {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+    // Add a KV read operation for GET requests
+    const keys = await CASTS_KV.list();
+    return new Response(JSON.stringify({
+      message: 'Worker is running!',
+      storedKeys: keys.keys.map(k => k.name)
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
   try {
@@ -99,16 +80,6 @@ async function handleRequest(request: Request): Promise<Response> {
     );
 
     if (!apiResponse.ok) {
-      if (apiResponse.status === 401) {
-        console.error('API request failed due to unauthorized access. Please check your API key.');
-        return new Response(JSON.stringify({
-          error: 'Unauthorized access to the Neynar API',
-          details: 'Please check your API key and ensure it is correctly set in your environment variables.'
-        }), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
       throw new Error(`API request failed with status ${apiResponse.status}`);
     }
 
@@ -179,20 +150,15 @@ async function handleRequest(request: Request): Promise<Response> {
     console.error('Error in handleRequest:', error);
 
     let errorMessage = 'An unknown error occurred';
-    let statusCode = 500;
-
     if (error instanceof Error) {
       errorMessage = error.message;
-      if (error.message.includes('API request failed')) {
-        statusCode = 502; // Bad Gateway
-      }
     }
 
     return new Response(JSON.stringify({
       error: 'An error occurred while processing casts',
       details: errorMessage
     }), {
-      status: statusCode,
+      status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
   }

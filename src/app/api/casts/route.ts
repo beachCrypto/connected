@@ -1,74 +1,54 @@
 import { NextResponse } from 'next/server';
+import { KVNamespace } from '@cloudflare/workers-types';
 
 // Import KV namespace if you're using Cloudflare Workers KV
 // import { CASTS_KV } from '../../path/to/your/kv-binding';
 
 export const runtime = 'edge';
 
-interface Cast {
-  hash: string;
-  thread_hash: string;
-  parent_hash: string | null;
-  author: {
-    fid: number;
-    username: string;
-    display_name: string;
-    pfp_url: string;
-  };
-  text: string;
-  timestamp: string;
-  embeds: any[];
-  reactions: {
-    likes: number;
-    recasts: number;
-  };
-  replies: {
-    count: number;
-  };
-  votes: number;
-  lastUpdated: string;
+interface Env {
+  CASTS_KV: KVNamespace;
 }
 
-export async function GET() {
-  console.log('GET request received');
+interface Cast {
+  hash: string;
+  votes: number;
+  lastUpdated: string;
+  [key: string]: any;
+}
 
+export async function GET(request: Request) {
   try {
-    const workerUrl = 'https://connected-fc.beachcrypto1.workers.dev';
-    console.log('Worker URL:', workerUrl);
+    const env = process.env as unknown as Env;
+    const { CASTS_KV } = env;
 
-    // Fetch casts from KV storage
-    const kvResponse = await fetch(workerUrl);
-
-    if (!kvResponse.ok) {
-      throw new Error(`KV responded with status: ${kvResponse.status}`);
+    if (!CASTS_KV) {
+      throw new Error('CASTS_KV is not defined');
     }
 
-    const data: unknown = await kvResponse.json();
-    if (typeof data === 'object' && data && 'storedKeys' in data && Array.isArray(data.storedKeys)) {
-        const storedKeys = data.storedKeys;
-        const casts: Cast[] = [];
+    // List all keys in the KV store
+    const listResult = await CASTS_KV.list();
+    const castPromises = listResult.keys.map(async (key) => {
+      const castData = await CASTS_KV.get(key.name, 'json');
+      return castData as Cast;
+    });
 
-        // Fetch each cast by its key
-        for (const key of storedKeys) {
-          if (key !== 'api_calls') {  // Skip the 'api_calls' key
-            const castResponse = await fetch(`${workerUrl}/${key}`);
-            if (castResponse.ok) {
-              const cast: Cast = await castResponse.json();
-              casts.push(cast);
-            } else {
-              console.error(`Failed to fetch cast with key: ${key}`);
-            }
-          }
-        }
+    const casts = await Promise.all(castPromises);
 
-        return NextResponse.json({ casts });
+    // Sort casts by votes (descending) and then by lastUpdated (descending)
+    casts.sort((a, b) => {
+      if (b.votes !== a.votes) {
+        return b.votes - a.votes;
+      }
+      return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
+    });
 
-    } else {
-        throw new Error('Unexpected response structure');
-    }
-
+    return NextResponse.json({ casts }, { status: 200 });
   } catch (error) {
-    console.error('Detailed error:', error);
-    return NextResponse.json({ error: 'Internal server error', details: (error as Error).message }, { status: 500 });
+    console.error('Error fetching casts:', error);
+    return NextResponse.json(
+      { error: 'An error occurred while fetching casts' },
+      { status: 500 }
+    );
   }
 }
