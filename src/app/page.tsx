@@ -26,18 +26,27 @@ export default async function Page() {
         </nav>
       </header>
       <main className="max-w-6xl mx-auto p-4">
-        <ol className="list-decimal list-inside">
+        <ol className="list-none">
           {casts.map((cast, index) => (
-            <li key={cast.hash} className="mb-2">
-              <div className="inline">
-                <a href="#" className="text-blue-800 hover:underline">{cast.text}</a>
-                <span className="text-gray-500 text-sm ml-1">
-                  (by {cast.author?.username ?? 'unknown'})
-                </span>
+            <li key={cast.hash} className="mb-2 flex items-start">
+              <div className="mr-2 mt-1">
+                <button className="upvote-button">
+                  <svg width="10" height="10" viewBox="0 0 10 10">
+                    <path d="M5 0L10 10H0Z" fill="#828282" />
+                  </svg>
+                </button>
               </div>
-              <div className="text-xs text-gray-500 ml-4">
-                {index + 1} points | {new Date(cast.timestamp).toLocaleString()} |
-                <a href="#" className="hover:underline ml-1">discuss</a>
+              <div>
+                <div className="inline">
+                  <a href="#" className="text-blue-800 hover:underline">{cast.text}</a>
+                  <span className="text-gray-500 text-sm ml-1">
+                    (by {cast.author?.username ?? 'unknown'})
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  {index + 1} points | {new Date(cast.timestamp).toLocaleString()} |
+                  <a href="#" className="hover:underline ml-1">discuss</a>
+                </div>
               </div>
             </li>
           ))}
