@@ -62,9 +62,9 @@ export async function POST(request: Request) {
       throw new Error('CASTS_KV is not defined');
     }
 
-    const { hash } = await request.json() as { hash: string };
-    if (!hash) {
-      return NextResponse.json({ error: 'Cast hash is required' }, { status: 400 });
+    const { hash, action } = await request.json() as { hash: string; action: 'upvote' | 'downvote' };
+    if (!hash || !action) {
+      return NextResponse.json({ error: 'Cast hash and action are required' }, { status: 400 });
     }
 
     const cast = await CASTS_KV.get<Cast>(hash, 'json');
@@ -72,15 +72,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Cast not found' }, { status: 404 });
     }
 
-    cast.votes += 1;
+    cast.votes += action === 'upvote' ? 1 : -1;
     cast.lastUpdated = new Date().toISOString();
     await CASTS_KV.put(hash, JSON.stringify(cast));
 
-    return NextResponse.json({ message: 'Upvote successful', cast }, { status: 200 });
+    return NextResponse.json({ message: `${action} successful`, cast }, { status: 200 });
   } catch (error) {
-    console.error('Error upvoting cast:', error);
+    console.error('Error voting on cast:', error);
     return NextResponse.json(
-      { error: 'An error occurred while upvoting the cast' },
+      { error: 'An error occurred while voting on the cast' },
       { status: 500 }
     );
   }

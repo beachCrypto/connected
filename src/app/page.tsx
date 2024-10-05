@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 
 interface Cast {
@@ -43,26 +44,26 @@ export default function Page() {
     });
   };
 
-  const handleUpvote = async (hash: string) => {
+  const handleVote = async (hash: string, action: 'upvote' | 'downvote') => {
     try {
       const response = await fetch('https://connected-fc.pages.dev/api/casts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ hash }),
+        body: JSON.stringify({ hash, action }),
       });
 
       if (response.ok) {
         const updatedCasts = casts.map(cast =>
-          cast.hash === hash ? { ...cast, votes: cast.votes + 1 } : cast
+          cast.hash === hash ? { ...cast, votes: cast.votes + (action === 'upvote' ? 1 : -1) } : cast
         );
         setCasts(sortCasts(updatedCasts));
       } else {
-        console.error('Failed to upvote cast');
+        console.error(`Failed to ${action} cast`);
       }
     } catch (error) {
-      console.error('Error upvoting cast:', error);
+      console.error(`Error ${action}ing cast:`, error);
     }
   };
 
@@ -72,10 +73,15 @@ export default function Page() {
         <nav className="max-w-6xl mx-auto flex flex-wrap items-center justify-between">
           <span className="font-bold text-white mr-4 text-lg sm:text-xl">Base Channel News</span>
           <div className="flex space-x-3 text-sm sm:text-base">
-            <a href="#" className="text-blue-200 hover:text-white">new</a>
-            <a href="#" className="text-blue-200 hover:text-white">past</a>
-            <a href="#" className="text-blue-200 hover:text-white">comments</a>
-            <a href="#" className="text-blue-200 hover:text-white">submit</a>
+            <Link href="/coming-soon" className="text-blue-200 hover:text-white">
+              new
+            </Link>
+            <Link href="/coming-soon" className="text-blue-200 hover:text-white">
+              past
+            </Link>
+            <Link href="/coming-soon" className="text-blue-200 hover:text-white">
+              submit
+            </Link>
           </div>
         </nav>
       </header>
@@ -83,19 +89,28 @@ export default function Page() {
         <ol className="list-none">
           {casts.map((cast, index) => (
             <li key={cast.hash} className="mb-4 flex items-start">
-              <div className="mr-2 mt-1">
+              <div className="mr-2 mt-1 flex flex-col items-center">
                 <button
-                  className="upvote-button"
-                  onClick={() => handleUpvote(cast.hash)}
+                  className="upvote-button mb-1"
+                  onClick={() => handleVote(cast.hash, 'upvote')}
                 >
                   <svg width="10" height="10" viewBox="0 0 10 10">
                     <path d="M5 0L10 10H0Z" fill="#828282" />
                   </svg>
                 </button>
+                <span className="text-xs">{cast.votes}</span>
+                <button
+                  className="downvote-button mt-1"
+                  onClick={() => handleVote(cast.hash, 'downvote')}
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10">
+                    <path d="M5 10L0 0H10Z" fill="#828282" />
+                  </svg>
+                </button>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="break-words">
-                  <a href="#" className="text-blue-800 hover:underline text-sm sm:text-base">{cast.text}</a>
+                  <div className="text-blue-800 hover:underline text-sm sm:text-base">{cast.text}</div>
                   <span className="text-gray-500 text-xs sm:text-sm ml-1">
                     (by {cast.author?.username ?? 'unknown'})
                   </span>

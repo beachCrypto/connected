@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "Base Channel News",
   description: "A Hacker News-style site for Base",
   openGraph: {
-    title: "Base ChannelNews",
+    title: "Base Channel News",
     description: "A Hacker News-style site for Base",
     images: [
       {
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
       },
     ],
     url: "https://connected-fc.pages.dev/",
-    siteName: "Base ChannelNews",
+    siteName: "Base Channel News",
     locale: "en_US",
     type: "website",
   },
