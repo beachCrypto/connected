@@ -8,14 +8,14 @@ export const metadata: Metadata = {
   title: "Base Channel News",
   description: "A Hacker News-style site for Base",
   openGraph: {
-    title: "Base News",
+    title: "Base ChannelNews",
     description: "A Hacker News-style site for Base",
     images: [
       {
-        url: "https://github.com/base-org/brand-kit/blob/main/logo/in-product/Base_Network_Logo.png",
+        url: "https://raw.githubusercontent.com/base-org/brand-kit/refs/heads/main/logo/in-product/Base_Network_Logo.png",
         width: 1200,
         height: 630,
-        alt: "Base News",
+        alt: "Base Channel News",
       },
     ],
     url: "https://connected-fc.pages.dev/",
@@ -25,9 +25,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Base News",
+    title: "Base Channel News",
     description: "A Hacker News-style site for Base",
-    images: ["https://github.com/base-org/brand-kit/blob/main/logo/in-product/Base_Network_Logo.png"],
+    images: ["https://raw.githubusercontent.com/base-org/brand-kit/refs/heads/main/logo/in-product/Base_Network_Logo.png"],
     creator: "@beachcrypto_eth",
   },
 };

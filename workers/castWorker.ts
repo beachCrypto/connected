@@ -11,6 +11,11 @@ interface ApiResponse {
   casts: Cast[];
 }
 
+interface UpvoteBody {
+  action: 'upvote';
+  hash: string;
+}
+
 const apiKey = NEYNAR_API_KEY;
 const API_LIMIT = 5; // Maximum number of API calls per minute
 const API_LIMIT_WINDOW = 60; // Time window in seconds (1 minute)
@@ -59,107 +64,135 @@ async function handleRequest(request: Request): Promise<Response> {
     });
   }
 
-  try {
-    // Check rate limit
-    const canProceed = await checkRateLimit();
-    if (!canProceed) {
-      return new Response(JSON.stringify({
-        error: 'Rate limit exceeded. Please try again later.'
-      }), {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+  if (request.method === 'POST') {
+    try {
+      const body = await request.json();
 
-    // Fetch casts from the API
-    const apiResponse = await fetch(
-      'https://api.neynar.com/v2/farcaster/feed/channels?channel_ids=base&with_recasts=true&with_replies=false&limit=25&should_moderate=false',
-      {
-        headers: { 'accept': 'application/json', 'api_key': apiKey || '' }
-      }
-    );
+      if (typeof body === 'object' && body !== null && 'action' in body && (body as UpvoteBody).action === 'upvote') {
+        // Handle upvote
+        const { hash } = body as UpvoteBody;
+        if (!hash) {
+          return new Response(JSON.stringify({ error: 'Cast hash is required' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
 
-    if (!apiResponse.ok) {
-      throw new Error(`API request failed with status ${apiResponse.status}`);
-    }
+        const cast = await CASTS_KV.get<Cast>(hash, 'json');
+        if (!cast) {
+          return new Response(JSON.stringify({ error: 'Cast not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
 
-    const apiData: ApiResponse = await apiResponse.json();
+        cast.votes += 1;
+        cast.lastUpdated = new Date().toISOString();
+        await CASTS_KV.put(hash, JSON.stringify(cast));
 
-    let newCasts = 0;
-    let updatedCasts = 0;
-    let verifiedCasts = 0;
+        return new Response(JSON.stringify({ message: 'Upvote successful', cast }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } else {
+        // Handle retrieving casts
+        // Check rate limit
+        const canProceed = await checkRateLimit();
+        if (!canProceed) {
+          return new Response(JSON.stringify({
+            error: 'Rate limit exceeded. Please try again later.'
+          }), {
+            status: 429,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
 
-    // Process and store casts
-    for (const cast of apiData.casts) {
-      try {
-        console.log(`Processing cast: ${cast.hash}`);
-        const existingCast = await CASTS_KV.get<Cast>(cast.hash, 'json');
-        if (!existingCast) {
-          // New cast
-          const newCast: Cast = {
-            ...cast,
-            votes: 0,
-            lastUpdated: new Date().toISOString()
-          };
-          console.log(`Storing new cast: ${cast.hash}`);
-          await CASTS_KV.put(cast.hash, JSON.stringify(newCast));
-          newCasts++;
-        } else {
-          // Existing cast - update if necessary
-          const updatedCast: Cast = {
-            ...existingCast,
-            ...cast,
-            votes: existingCast.votes, // Preserve existing votes
-            lastUpdated: new Date().toISOString()
-          };
-          if (JSON.stringify(existingCast) !== JSON.stringify(updatedCast)) {
-            console.log(`Updating existing cast: ${cast.hash}`);
-            await CASTS_KV.put(cast.hash, JSON.stringify(updatedCast));
-            updatedCasts++;
+        // Fetch casts from the API
+        const apiResponse = await fetch(
+          'https://api.neynar.com/v2/farcaster/feed/channels?channel_ids=base&with_recasts=true&with_replies=false&limit=25&should_moderate=false',
+          {
+            headers: { 'accept': 'application/json', 'api_key': apiKey || '' }
+          }
+        );
+
+        if (!apiResponse.ok) {
+          throw new Error(`API request failed with status ${apiResponse.status}`);
+        }
+
+        const apiData: ApiResponse = await apiResponse.json();
+
+        let newCasts = 0;
+        let updatedCasts = 0;
+        let verifiedCasts = 0;
+
+        // Process and store casts
+        for (const cast of apiData.casts) {
+          try {
+            console.log(`Processing cast: ${cast.hash}`);
+            const existingCast = await CASTS_KV.get<Cast>(cast.hash, 'json');
+            if (!existingCast) {
+              // New cast
+              const newCast: Cast = {
+                ...cast,
+                votes: 0,
+                lastUpdated: new Date().toISOString()
+              };
+              console.log(`Storing new cast: ${cast.hash}`);
+              await CASTS_KV.put(cast.hash, JSON.stringify(newCast));
+              newCasts++;
+            } else {
+              // Existing cast - update if necessary
+              const updatedCast: Cast = {
+                ...existingCast,
+                ...cast,
+                votes: existingCast.votes, // Preserve existing votes
+                lastUpdated: new Date().toISOString()
+              };
+              if (JSON.stringify(existingCast) !== JSON.stringify(updatedCast)) {
+                console.log(`Updating existing cast: ${cast.hash}`);
+                await CASTS_KV.put(cast.hash, JSON.stringify(updatedCast));
+                updatedCasts++;
+              }
+            }
+
+            // Verify the cast was stored correctly
+            const verifiedCast = await CASTS_KV.get<Cast>(cast.hash, 'json');
+            if (verifiedCast) {
+              verifiedCasts++;
+              console.log(`Verified cast ${cast.hash} is stored correctly`);
+            } else {
+              console.error(`Failed to verify cast ${cast.hash}`);
+            }
+
+          } catch (error) {
+            console.error(`Error processing cast ${cast.hash}:`, error);
+            // Continue processing other casts
           }
         }
 
-        // Verify the cast was stored correctly
-        const verifiedCast = await CASTS_KV.get<Cast>(cast.hash, 'json');
-        if (verifiedCast) {
-          verifiedCasts++;
-          console.log(`Verified cast ${cast.hash} is stored correctly`);
-        } else {
-          console.error(`Failed to verify cast ${cast.hash}`);
-        }
+        console.log(`Processed ${newCasts} new casts, updated ${updatedCasts} casts, and verified ${verifiedCasts} casts`);
 
-      } catch (error) {
-        console.error(`Error processing cast ${cast.hash}:`, error);
-        // Continue processing other casts
+        return new Response(JSON.stringify({
+          message: 'Casts processed',
+          newCasts,
+          updatedCasts,
+          verifiedCasts
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
+    } catch (error) {
+      console.error('Error processing request:', error);
+      return new Response(JSON.stringify({ error: 'An error occurred while processing the request' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
-
-    console.log(`Processed ${newCasts} new casts, updated ${updatedCasts} casts, and verified ${verifiedCasts} casts`);
-
-    return new Response(JSON.stringify({
-      message: 'Casts processed',
-      newCasts,
-      updatedCasts,
-      verifiedCasts
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-  } catch (error: unknown) {
-    console.error('Error in handleRequest:', error);
-
-    let errorMessage = 'An unknown error occurred';
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    }
-
-    return new Response(JSON.stringify({
-      error: 'An error occurred while processing casts',
-      details: errorMessage
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
   }
+
+  return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+    status: 405,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }

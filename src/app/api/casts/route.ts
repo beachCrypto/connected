@@ -52,3 +52,36 @@ export async function GET(request: Request) {
     );
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const env = process.env as unknown as Env;
+    const { CASTS_KV } = env;
+
+    if (!CASTS_KV) {
+      throw new Error('CASTS_KV is not defined');
+    }
+
+    const { hash } = await request.json() as { hash: string };
+    if (!hash) {
+      return NextResponse.json({ error: 'Cast hash is required' }, { status: 400 });
+    }
+
+    const cast = await CASTS_KV.get<Cast>(hash, 'json');
+    if (!cast) {
+      return NextResponse.json({ error: 'Cast not found' }, { status: 404 });
+    }
+
+    cast.votes += 1;
+    cast.lastUpdated = new Date().toISOString();
+    await CASTS_KV.put(hash, JSON.stringify(cast));
+
+    return NextResponse.json({ message: 'Upvote successful', cast }, { status: 200 });
+  } catch (error) {
+    console.error('Error upvoting cast:', error);
+    return NextResponse.json(
+      { error: 'An error occurred while upvoting the cast' },
+      { status: 500 }
+    );
+  }
+}
