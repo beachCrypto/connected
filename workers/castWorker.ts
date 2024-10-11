@@ -127,7 +127,7 @@ export async function fetchAndProcessCasts(): Promise<Response> {
 
   // Fetch casts from the API
   const apiResponse = await fetch(
-    'https://api.neynar.com/v2/farcaster/feed?feed_type=filter&filter_type=channel_id&channel_id=base&members_only=true&embed_types=&with_recasts=false&limit=100',
+    'https://api.neynar.com/v2/farcaster/feed?feed_type=filter&filter_type=channel_id&channel_id=base&members_only=true&with_recasts=false&limit=100',
     {
       headers: { 'accept': 'application/json', 'api_key': NEYNAR_API_KEY }
     }

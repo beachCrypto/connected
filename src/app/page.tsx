@@ -110,7 +110,8 @@ export default function Page() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="break-words">
-                  <div className="text-blue-800 hover:underline text-sm sm:text-base">{cast.text}</div>
+                  {/* <div className="text-blue-800 hover:underline text-sm sm:text-base">{cast.text}</div> */}
+                  <div className="text-blue-800 text-sm sm:text-base">{cast.text}</div>
                   <span className="text-gray-500 text-xs sm:text-sm ml-1">
                     (by {cast.author?.username ?? 'unknown'})
                   </span>

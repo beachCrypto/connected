@@ -74,3 +74,6 @@ pages_build_output_dir = ".vercel/output/static"
 binding = "CASTS_KV"
 preview_id = "8abd14e0beed4cd9acb42c044e09f489"
 id = "228792db361f477a944fa1b04533351d"
+
+[observability]
+enabled = true
